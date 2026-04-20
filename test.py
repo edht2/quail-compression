@@ -1,8 +1,11 @@
 from main import QuailCompression
- 
+from colorama import Back
 
- 
-s = "Eggbert is lord!"
-tree, bit_str = QuailCompression.encode(s)
-print(tree, bit_str)
-print(QuailCompression.decode(tree, bit_str))
+s = "Eggbert grew a berry in 35 days"
+bit_str = QuailCompression.encode(s)
+
+print(bit_str)
+
+
+
+print(QuailCompression.decode(bit_str))

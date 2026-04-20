@@ -1,5 +1,6 @@
-
 class QuailCompression:
+    
+    backref_marker = b"\0x1F" # Unit Separator
     
     # ENCODING
 
@@ -14,7 +15,7 @@ class QuailCompression:
         
         tuple_tree = QuailCompression.build_tuple_tree(s)
         
-        # Serialize the tuple tree      
+        # Serialize the tuple tree
         bin_tree = QuailCompression.serialize_tree(tuple_tree)
         
         # Map addresses to a dictionary for faster encoding
@@ -25,14 +26,17 @@ class QuailCompression:
         final = ""
         for char in s:
             final += char_map[char]
+            
+        # Count leaf nodes
+        leaf_nodes = f'{len(addr_map):08b}'
         
-        return bin_tree, final
+        return leaf_nodes + bin_tree + final
     
     def build_tuple_tree(s:str) -> tuple:
         """ Creates a Huffman tree of tuples from the input string """
         
         # Frequency order
-        char_freq = [(c, s.count(c)) for c in list(set(s))]
+        char_freq = [(c, s.count(c)) for c in sorted(list(set(s)))]
         char_freq = QuailCompression.sort_freq(char_freq)
         
         # Build the tree
@@ -95,21 +99,46 @@ class QuailCompression:
             left = QuailCompression.decode_serialized(bit_iterator)
             right = QuailCompression.decode_serialized(bit_iterator)
             return (left, right)
+        
+    def delim(bit_str:str) -> list[str, str]:
+        """ Split the long binary string into a parts. eg Binary tree part, encoded part"""
+        
+        # First 8 bits are the number of leaf nodes in the tree
+        leaf_nodes = int(bit_str[:8], 2)
+        
+        cursor = 8
+        found_leaves = 0
+        while cursor < len(bit_str):
+            if bit_str[cursor] == "0":
+                cursor += 9 # skip any characters encoded in the tree
+                found_leaves += 1
+                if found_leaves >= leaf_nodes: break
+            else:
+                cursor += 1
+                
+        return bit_str[8:][:cursor], bit_str[cursor:]
+        
 
-    def decode(bit_tree:str, bit_str:str) -> str:
+    def decode(bit_str:str) -> str:
         """ Decodes the string with the serialized Huffman tree
         parameters:
-         bit_tree : str # The serialized Huffman tree
-         bit_str : str # The encoded string
+         bit_str : str # The encoded string including the serialized tree and encoded bin string
         returns: 
          s : str # The decoded string
         """
-        decoded_tree = QuailCompression.decode_serialized(iter(bit_tree))
         
+        serialized_tree, encoded = QuailCompression.delim(bit_str)
+    
+        decoded_tree = QuailCompression.decode_serialized(
+            iter(
+                serialized_tree # Skip first 8 bits (num nodes)
+            )
+        )
+
         decoded = ""
         cursor = decoded_tree
-        
-        for bit in bit_str:
+                
+        for bit in encoded:
             if isinstance(cursor[int(bit)], str):
                 decoded += cursor[int(bit)]
                 cursor = decoded_tree
