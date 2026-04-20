@@ -1,11 +1,10 @@
 from main import QuailCompression
-from colorama import Back
+from analyse import analyse
 
-s = "Eggbert grew a berry in 35 days"
+s = "Eggbert grew a berry"
 bit_str = QuailCompression.encode(s)
 
 print(bit_str)
-
-
+analyse(bit_str, hint=True)
 
 print(QuailCompression.decode(bit_str))
