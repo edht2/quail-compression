@@ -1,6 +1,7 @@
 class QuailCompression:
     
     backref_marker = b"\0x1F" # Unit Separator
+    length_bits = 32
     
     # ENCODING
 
@@ -30,7 +31,10 @@ class QuailCompression:
         # Count leaf nodes
         leaf_nodes = f'{len(addr_map):08b}'
         
-        return leaf_nodes + bin_tree + final
+        # Total length of the file
+        length = f'{len(leaf_nodes + bin_tree + final)+32:032b}'
+        
+        return length + leaf_nodes + bin_tree + final
     
     def build_tuple_tree(s:str) -> tuple:
         """ Creates a Huffman tree of tuples from the input string """
@@ -103,10 +107,14 @@ class QuailCompression:
     def delim(bit_str:str) -> list[str, str]:
         """ Split the long binary string into a parts. eg Binary tree part, encoded part"""
         
-        # First 8 bits are the number of leaf nodes in the tree
-        leaf_nodes = int(bit_str[:8], 2)
+        # First 4 bytes store length of file
+        length = int(bit_str[:32], 2)
         
-        cursor = 8
+        # Fith byte are the number of leaf nodes in the tree
+        leaf_nodes = int(bit_str[32:40], 2)
+        
+        
+        cursor = 40
         found_leaves = 0
         while cursor < len(bit_str):
             if bit_str[cursor] == "0":
@@ -116,7 +124,7 @@ class QuailCompression:
             else:
                 cursor += 1
                 
-        return bit_str[8:][:cursor], bit_str[cursor:]
+        return bit_str[40:][:cursor], bit_str[cursor:length]
         
 
     def decode(bit_str:str) -> str:
@@ -146,4 +154,27 @@ class QuailCompression:
                 cursor = cursor[int(bit)]
         return decoded
     
-
+    # WRITING TO FILES
+    
+    def write(filename:str, bit_str:str):
+        
+        # Make the bit_str divisible by 8 bit (bytes)
+        bit_str += '0' * (8 - (len(bit_str) % 8))
+        
+        # iterate over every byte, turning the bits into the ascii-ext byte
+        cursor = 0
+        to_write = b''
+        while cursor < len(bit_str):
+            to_write += chr(int(bit_str[cursor:cursor+8], 2)).encode("latin-1")
+            cursor += 8
+            
+        with open(filename, 'wb') as f:
+            f.write(to_write)
+    
+    # READING
+    
+    def read(filename:str) -> str:
+        with open(filename, 'rb') as f:
+            bit_str = ''.join(f"{char:08b}" for char in f.read())
+        return bit_str
+        
