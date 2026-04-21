@@ -5,36 +5,54 @@ import argparse
 from main.main import QuailCompression
 from analyse import analyse
 
-parser = argparse.ArgumentParser(description="My Compression Tool")
-parser.add_argument("-c", "--compress", help="File to compress")
-parser.add_argument("-e", "--expand", help="Expand target file")
-parser.add_argument("-o", "--output", help="Output filename")
+parser = argparse.ArgumentParser(description="Quail Compression is a simple compression tool for ASCII-ext")
+subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+extract_parser = subparsers.add_parser("extract", help="Extract a file")
+extract_parser.add_argument("filename", help="The file to extract")
+extract_parser.add_argument("-o", "--output", help="Output filename")
+extract_parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode")
+
+compress_parser = subparsers.add_parser("compress", help="Compress a file")
+compress_parser.add_argument("-o", "--output", help="Output filename")
+compress_parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode")
+compress_parser.add_argument("filename", help="The file to compress")
 
 args = parser.parse_args()
 
-if args.compress:
-    file_to_compress = args.compress
-    f = open(file_to_compress)
-    content = f.read()
-    f.close()
 
-    bit_str = QuailCompression.encode(content)
-    
-    if args.output:
-        storage_file = args.output
-        QuailCompression.write(storage_file, bit_str)
-
-if args.expand:
-    file_to_expand = args.expand
-    
-    content = QuailCompression.read(file_to_expand)
-    decoded = QuailCompression.decode(content)
-    
-    if args.output:
-        with open(args.output, "w") as f:
-            f.write(decoded)
-    
-    else:
-        analyse(content)
-        print(decoded)
+if args.command == "compress":
+    if not args.quiet:
+        print(f"Compressing {args.filename}...")
         
+    with open(
+        args.filename
+    ) as f:
+        bit_str = QuailCompression.encode(f.read())
+
+    QuailCompression.write(
+        args.output if args.output else args.filename + ".qc",
+        bit_str
+    )
+    
+    if not args.quiet:
+        print(f"Compressed into {args.output if args.output else args.filename + ".qc"}...")
+
+
+
+elif args.command == "extract":
+    if not args.quiet:
+        print(f"Extracting {args.filename}...")
+    
+    decoded = QuailCompression.decode(
+        QuailCompression.read(args.filename)
+    )
+    
+    with open(args.output if args.output else "a.txt", "w") as f:
+        f.write(decoded)
+    
+    if not args.quiet:
+        print(f"Extracted into {args.output if args.output else "a.txt"}")
+    
+
+    
