@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 class QuailCompression:
     
     backref_marker = b"\0x1F" # Unit Separator
