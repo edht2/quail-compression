@@ -35,5 +35,6 @@ if args.expand:
             f.write(decoded)
     
     else:
+        analyse(content)
         print(decoded)
         
